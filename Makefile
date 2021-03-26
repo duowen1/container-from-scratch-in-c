@@ -1,7 +1,7 @@
 all:container
 
 container:container.c
-	gcc container.c -o container
+	gcc container.c -o container -lcap
 	sudo ./container mycontainer ../rootfs
 
 server:server.c

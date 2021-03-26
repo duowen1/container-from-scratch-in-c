@@ -4,6 +4,7 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/capability.h>
 #include <sched.h>
 #include <string.h>
 #include <stdio.h>
@@ -55,6 +56,15 @@ static int childfunction(void *arg){
     }
 
     //pop a shell
+
+    //I should utilize capabilities to limit
+
+    cap_t caps = cap_get_proc();
+    ssize_t y=0;
+    printf("given capabilities %s\n",cap_to_text(caps,&y));
+    printf("y=%ld\n",y);
+    fflush(0);
+    cap_free(caps);
     execlp("/bin/bash",NULL);
     return 0;
 }
@@ -62,6 +72,21 @@ static int childfunction(void *arg){
 int main(int argc, char *argv[]){
     pid_t child_pid;
     struct utsname uts;
+
+    cap_t caps = cap_get_proc();
+    cap_value_t cap_list[2];
+    cap_list[0]=CAP_SYS_CHROOT;
+    cap_list[1]=CAP_SYS_ADMIN;
+
+    if(cap_set_flag(caps, CAP_EFFECTIVE, 2, cap_list, CAP_SET)==-1) printf("cap_set_flag wrong\n");
+    //caps = cap_get_proc();
+    if(caps==NULL) printf("[old]wrong\n");
+    ssize_t y=0;
+    printf("[old]given capabilities %s\n",cap_to_text(caps,&y));
+    printf("[old]y=%ld\n",y);
+    fflush(0);
+    cap_free(caps);
+    return 0;
 
     int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET;
     child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
@@ -85,8 +110,8 @@ int main(int argc, char *argv[]){
             exit(1);
 
         }else{
-            printf("PID returned by clone(): %ld\n",(long)child_pid);
-            printf("uts.nodename in parent : %s\n",uts.nodename);
+            printf("[old]PID returned by clone(): %ld\n",(long)child_pid);
+            printf("[old]uts.nodename in parent : %s\n",uts.nodename);
         }
 
         
@@ -98,7 +123,7 @@ int main(int argc, char *argv[]){
             exit(1);
 
         }else{
-            printf("child has terminated\n");
+            printf("[old]child has terminated\n");
         }
     }
     return 0;
