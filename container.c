@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <seccomp.h>
 
 #define STACK_SIZE (1024*1024)
 
@@ -22,6 +23,7 @@ static char child_stack[STACK_SIZE];//stack of child process
 
 void cgroup(pid_t);
 void list_capability(int flag);
+void init_seccomp();
 
 //the function which new process executed
 static int childfunction(void *arg){
@@ -101,6 +103,9 @@ static int childfunction(void *arg){
             return 0;
         }
     }
+
+    init_seccomp();
+
     execlp("/bin/bash",NULL);//执行后capability的设置失效了
     return 0;
 }
@@ -195,4 +200,28 @@ void list_capability(int flag){
         cap_data->effective,
         cap_data->inheritable);
     return;
+}
+
+void init_seccomp(){
+    scmp_filter_ctx scmp=seccomp_init(SCMP_ACT_ALLOW);
+
+    if(!scmp){
+        perror("failed to initialize libseccomp\n");
+        return;
+    }
+
+    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(fork),0)<0){
+        perror("seccomp_rule_add_fail");
+        return;
+
+    }
+
+    seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(clone),0);
+
+
+    if(seccomp_load(scmp)!=0){
+        perror("failed to load the filter in the kernnel\n");
+        return;
+    }
+
 }

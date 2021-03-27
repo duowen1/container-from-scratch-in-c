@@ -1,7 +1,7 @@
 all:container
 
 container:container.c
-	gcc container.c -o container -lcap
+	gcc container.c -o container -lcap -lseccomp
 
 server:server.c
 	gcc server.c -o server
