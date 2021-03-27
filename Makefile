@@ -2,7 +2,6 @@ all:container
 
 container:container.c
 	gcc container.c -o container -lcap
-	sudo ./container mycontainer ../rootfs
 
 server:server.c
 	gcc server.c -o server
@@ -12,6 +11,9 @@ client:client.c
 
 threads-cpu: cpu-hungry.c
 	gcc -o threads-cpu cpu-hungry.c -lpthread
+
+run:
+	sudo ./container mycontainer ../rootfs
 
 clean:
 	rm container

@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #include <sched.h>
 #include <string.h>
 #include <stdio.h>
@@ -13,19 +14,26 @@
 
 #define STACK_SIZE (1024*1024)
 
+#define CLONE_NEWTIME 0x80
+
+#define N 23
+
 static char child_stack[STACK_SIZE];//stack of child process
 
 void cgroup(pid_t);
+void list_capability(int flag);
 
 //the function which new process executed
 static int childfunction(void *arg){
     int res;
+    //caps = cap_get_proc();
+    list_capability(2);
 
     char *hostname=((char **)arg)[1];
     sethostname(hostname,strlen(hostname));
     setdomainname(hostname,strlen(hostname));
-    printf("childFunc(): PID = %ld\n",(long)getpid());
-    printf("childFunc(): PPID = %ld\n", (long)getppid());
+    printf("[new]childFunc(): PID = %ld\n",(long)getpid());
+    printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
 
     sleep(1);//wait the parent namespace to set network
     //setup container network
@@ -42,6 +50,7 @@ static int childfunction(void *arg){
         perror("Chroot fail");
     }
     chdir("/");//change pwd to rootfs,without this the container might escape
+    printf("[new]chroot success\n");
 
     //mount the proc and then the ps commond can show the right result in new PID namespace
     char *mount_point = "proc";
@@ -51,7 +60,7 @@ static int childfunction(void *arg){
             perror("Mount fail");
             exit(1);
         }else{
-            printf("Mounting procfs as %s\n",mount_point);
+            printf("[new]Mounting procfs as %s\n",mount_point);
         }
     }
 
@@ -59,41 +68,56 @@ static int childfunction(void *arg){
 
     //I should utilize capabilities to limit
 
-    cap_t caps = cap_get_proc();
-    ssize_t y=0;
-    printf("given capabilities %s\n",cap_to_text(caps,&y));
-    printf("y=%ld\n",y);
-    fflush(0);
-    cap_free(caps);
-    execlp("/bin/bash",NULL);
+    cap_value_t cap_list[N];
+    cap_list[0]=CAP_SYS_CHROOT;
+    cap_list[1]=CAP_SYS_ADMIN;
+    cap_list[2]=CAP_SYS_TIME;
+    cap_list[3]=CAP_SYS_BOOT;
+    cap_list[4]=CAP_SYS_RAWIO;
+    cap_list[5]=CAP_SYSLOG;
+    cap_list[6]=CAP_DAC_READ_SEARCH;
+    cap_list[7]=CAP_LINUX_IMMUTABLE;
+    cap_list[8]=CAP_NET_BROADCAST;
+    cap_list[9]=CAP_NET_ADMIN;
+    cap_list[10]=CAP_IPC_LOCK;
+    cap_list[11]=CAP_IPC_OWNER;
+    cap_list[12]=CAP_SYS_MODULE;
+    cap_list[13]=CAP_SYS_PTRACE;
+    cap_list[14]=CAP_SYS_PACCT;
+    cap_list[15]=CAP_SYS_NICE;
+    cap_list[16]=CAP_SYS_RESOURCE;
+    cap_list[17]=CAP_SYS_TTY_CONFIG;
+    cap_list[18]=CAP_LEASE;
+    cap_list[19]=CAP_AUDIT_CONTROL; 
+    cap_list[20]=CAP_MAC_OVERRIDE;
+    cap_list[21]=CAP_MAC_ADMIN;
+    cap_list[21]=CAP_WAKE_ALARM;
+    cap_list[22]=CAP_BLOCK_SUSPEND;
+    
+    for(int i=0;i<N;i++){
+        res=prctl(PR_CAPBSET_DROP,cap_list[i]);
+        if(res!=0){
+            perror("prctl call fail\n");
+            return 0;
+        }
+    }
+    execlp("/bin/bash",NULL);//执行后capability的设置失效了
     return 0;
 }
 
 int main(int argc, char *argv[]){
+    list_capability(1);
     pid_t child_pid;
     struct utsname uts;
-
-    cap_t caps = cap_get_proc();
-    cap_value_t cap_list[2];
-    cap_list[0]=CAP_SYS_CHROOT;
-    cap_list[1]=CAP_SYS_ADMIN;
-
-    if(cap_set_flag(caps, CAP_EFFECTIVE, 2, cap_list, CAP_SET)==-1) printf("cap_set_flag wrong\n");
-    //caps = cap_get_proc();
-    if(caps==NULL) printf("[old]wrong\n");
-    ssize_t y=0;
-    printf("[old]given capabilities %s\n",cap_to_text(caps,&y));
-    printf("[old]y=%ld\n",y);
-    fflush(0);
-    cap_free(caps);
-    return 0;
-
-    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET;
+    if(unshare(CLONE_NEWTIME)){
+        perror("make new time namespace fail.\n");
+        return 0;
+    }
+    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET ;
     child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
-    
     if(child_pid==-1){
         //output error information and exit
-        perror("Create process fail:");
+        perror("Create process fail");
         exit(1);
     }else{
         cgroup(child_pid);//set cgroup rules
@@ -113,10 +137,7 @@ int main(int argc, char *argv[]){
             printf("[old]PID returned by clone(): %ld\n",(long)child_pid);
             printf("[old]uts.nodename in parent : %s\n",uts.nodename);
         }
-
-        
-        sleep(1000);
-
+        sleep(2);
         if(waitpid(child_pid,NULL,0)==-1){
             //output error information and exit
             perror("child terminate fail:");
@@ -150,5 +171,28 @@ void cgroup(pid_t pid){
     fprintf(cgroup_procs_fd,"%d",pid);
     fclose(cgroup_procs_fd);
     printf("Creat cgroup success\n");
+    return;
+}
+
+void list_capability(int flag){
+    struct __user_cap_header_struct cap_header_data;
+    cap_user_header_t cap_header = &cap_header_data;
+
+    struct __user_cap_data_struct cap_data_data;
+    cap_user_data_t cap_data = &cap_data_data;
+
+    cap_header->pid = getpid();
+    cap_header->version = _LINUX_CAPABILITY_VERSION_1;
+
+    if (capget(cap_header, cap_data) < 0) {
+        perror("Failed capget");
+        exit(1);
+    }
+    if(flag==1) printf("[old]");
+    else printf("[new]");
+    printf("Cap data permitted: 0x%x, effective: 0x%x, inheritable:0x%xn\n", 
+        cap_data->permitted, 
+        cap_data->effective,
+        cap_data->inheritable);
     return;
 }
