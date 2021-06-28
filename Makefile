@@ -13,7 +13,7 @@ threads-cpu: cpu-hungry.c
 	gcc -o threads-cpu cpu-hungry.c -lpthread
 
 run:
-	sudo ./container mycontainer ../rootfs
+	./container mycontainer ../rootfs
 
 clean:
 	rm container

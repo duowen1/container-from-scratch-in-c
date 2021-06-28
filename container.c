@@ -37,15 +37,23 @@ static int childfunction(void *arg){
     printf("[new]childFunc(): PID = %ld\n",(long)getpid());
     printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
 
+
+    //todo: write uid_map file
+
     sleep(1);//wait the parent namespace to set network
     //setup container network
+
+    /*
     system("ip link set lo up");//turn on loop back address
     system("ip link set veth1 up");//turn on the network advice
     system("ip addr add 192.168.31.10/24 dev veth1");//set the ip address on device
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
     system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
+    */
 
-    //change root directory to rootfs
+
+    //todo: use mount namespace rather than chroot
+    // change root directory to rootfs
     char *rootfs=((char **)arg)[2];
     res=chroot(rootfs);
     if(res<0){
@@ -70,6 +78,7 @@ static int childfunction(void *arg){
 
     //I should utilize capabilities to limit
 
+    /*
     cap_value_t cap_list[N];
     cap_list[0]=CAP_SYS_CHROOT;
     cap_list[1]=CAP_SYS_ADMIN;
@@ -103,6 +112,7 @@ static int childfunction(void *arg){
             return 0;
         }
     }
+    */
 
     init_seccomp();
 
@@ -114,19 +124,24 @@ int main(int argc, char *argv[]){
     list_capability(1);
     pid_t child_pid;
     struct utsname uts;
-    if(unshare(CLONE_NEWTIME)){
-        perror("make new time namespace fail.\n");
-        return 0;
-    }
-    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET ;
+    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWUSER;
     child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
     if(child_pid==-1){
         //output error information and exit
         perror("Create process fail");
         exit(1);
     }else{
-        cgroup(child_pid);//set cgroup rules
 
+        /*
+        if(unshare(CLONE_NEWTIME)){
+            perror("make new time namespace fail.\n");
+            return 0;
+        }
+        */
+
+        //cgroup(child_pid);//set cgroup rules
+
+        /*
         system("ip link add veth0 type veth peer name veth1");
         char cmd[100];
         sprintf(cmd,"ip link set veth1 netns %d",child_pid);
@@ -142,7 +157,10 @@ int main(int argc, char *argv[]){
             printf("[old]PID returned by clone(): %ld\n",(long)child_pid);
             printf("[old]uts.nodename in parent : %s\n",uts.nodename);
         }
+        */
+
         sleep(2);
+
         if(waitpid(child_pid,NULL,0)==-1){
             //output error information and exit
             perror("child terminate fail:");
