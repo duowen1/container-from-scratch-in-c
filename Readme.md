@@ -176,6 +176,11 @@ KiB Swap:  1942896 total,  1919332 free,    23564 used.   436980 avail Mem
 ## capability
 细粒度的权限管理机制，Linux将超级用户不同单元的权限分开，可以单独开启和禁止。内核在检查进程是否具有某项权限时，不在检查该进程是特权进程还是非特权进程，而是检查该进程是否具有进行该操作的capability。
 
+install 
+```
+sudo apt-get install libcap-dev
+```
+
 ```
 cat /usr/include/linux/capability.h
 
@@ -254,8 +259,7 @@ int main() {
 
 ```
 
-# 实现
-## UTS namespace
+# UTS namespace
 参考Linux Kernel文档编写程序：
 ```c
 static int childFunc(void *arg){
@@ -287,9 +291,9 @@ int main(int argc, char *argv[]){
 }
 ```
 
-## PID namespace
+# PID namespace
 
-### 挂载proc文件系统
+## 挂载proc文件系统
 有些命令例如```ps```、```top```命令会读取```/proc```目录下的文件，所以在未挂载```proc```文件系统前，```ps```和```top```命令会展示出父namespace中的进程
 
 ```c
@@ -305,7 +309,7 @@ if(mount_point != NULL){
 }
 ```
 
-## Network namespace
+# Network namespace
 通过veth设备对的方式完成通信
 
 **host**
@@ -324,20 +328,20 @@ ip addr add [ip/mask] dev veth1
 route add default gw [net gate] veth1
 ```
 
-## chroot(mount namespace)
-### 文件系统
+# chroot(mount namespace)
+## 文件系统
 下载一个制作好的root filesystem
 
 [rootfs](https://github-production-release-asset-2e65be.s3.amazonaws.com/71006166/5767750c-92cc-11e6-98bd-64be9b36cd82?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20201203%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20201203T065815Z&X-Amz-Expires=300&X-Amz-Signature=97b774885f1f49c3a5b4c0d2d5ba0134831167dee5fa0123418809ef776e70fd&X-Amz-SignedHeaders=host&actor_id=38399831&key_id=0&repo_id=71006166&response-content-disposition=attachment%3B%20filename%3Drootfs.tar.gz&response-content-type=application%2Foctet-stream)
 
-### 根文件目录
+## 根文件目录
 ```
 chroot(rootfs)
 chdir("/")
 ```
 
-## cpu cgroup
-### cpu-hungry进程
+# cpu cgroup
+## cpu-hungry进程
 编写死循环程序以消耗CPU资源
 
 ```c
@@ -370,7 +374,7 @@ int main(int argc, char *argv[]){
 }
 ```
 
-### 设置cpu cgroup
+## 设置cpu cgroup
 **host**
 ```
 void cgroup(pid_t pid){
@@ -389,15 +393,6 @@ void cgroup(pid_t pid){
     return;
 }
 ```
-
-## memory cgroup
-todo
-
-## capabilities
-todo
-
-## seccomp
-
 
 
 # 结果

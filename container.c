@@ -66,7 +66,7 @@ static int childfunction(void *arg){
         }
     }
 
-    //pop a shell
+    //spawn a shell
 
     //I should utilize capabilities to limit
 
@@ -106,7 +106,7 @@ static int childfunction(void *arg){
 
     init_seccomp();
 
-    execlp("/bin/bash",NULL);//执行后capability的设置失效了
+    execlp("/bin/bash",NULL);
     return 0;
 }
 
@@ -210,13 +210,16 @@ void init_seccomp(){
         return;
     }
 
-    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(fork),0)<0){
+    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(unshare),0)<0){
         perror("seccomp_rule_add_fail");
         return;
 
     }
 
-    seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(clone),0);
+    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(setns),0)<0){
+        perror("seccomp_rule_add_fail");
+        return;
+    }
 
 
     if(seccomp_load(scmp)!=0){
