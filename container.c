@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/capability.h>
 #include <sys/prctl.h>
+#include <fcntl.h>
 #include <sched.h>
 #include <string.h>
 #include <stdio.h>
@@ -31,12 +32,20 @@ static int childfunction(void *arg){
     //caps = cap_get_proc();
     list_capability(2);
 
+    //map uid and gid
+    int uid_fd,gid_fd;
+    uid_fd = open("/proc/self/uid_map", O_WRONLY);
+    gid_fd = open("/proc/self/gid_map", O_WRONLY);
+    dprintf(uid_fd, "0 1000 1\n");
+    dprintf(gid_fd, "0 1000 1\n");
+    close(uid_fd);
+    close(gid_fd);
+    
     char *hostname=((char **)arg)[1];
     sethostname(hostname,strlen(hostname));
     setdomainname(hostname,strlen(hostname));
     printf("[new]childFunc(): PID = %ld\n",(long)getpid());
     printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
-
 
     //todo: write uid_map file
 
