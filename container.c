@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/capability.h>
 #include <sys/prctl.h>
+#include <sys/syscall.h>
 #include <fcntl.h>
 #include <sched.h>
 #include <string.h>
@@ -30,7 +31,7 @@ void init_seccomp();
 static int childfunction(void *arg){
     int res;
     //caps = cap_get_proc();
-    list_capability(2);
+    //list_capability(2);
 
     //map uid and gid
     int uid_fd,gid_fd;
@@ -41,9 +42,12 @@ static int childfunction(void *arg){
     close(uid_fd);
     close(gid_fd);
     
+    //sethostname
     char *hostname=((char **)arg)[1];
     sethostname(hostname,strlen(hostname));
     setdomainname(hostname,strlen(hostname));
+
+    //print process id
     printf("[new]childFunc(): PID = %ld\n",(long)getpid());
     printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
 
@@ -62,14 +66,27 @@ static int childfunction(void *arg){
 
 
     //todo: use mount namespace rather than chroot
-    // change root directory to rootfs
+    //change root directory to rootfs
+
+    printf("[new]mount\n");
     char *rootfs=((char **)arg)[2];
-    res=chroot(rootfs);
-    if(res<0){
-        perror("Chroot fail");
+    
+    mount("","/","",MS_SLAVE|MS_REC,NULL);
+    mount(rootfs, rootfs, "bind", MS_BIND|MS_REC, NULL);
+    chdir(rootfs);
+    int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
+    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY , 0);
+    fchdir(newroot_fd);
+    res = syscall(SYS_pivot_root, "." ,".");
+    if(res!=0){
+        perror("pivot_root wrong");
     }
-    chdir("/");//change pwd to rootfs,without this the container might escape
-    printf("[new]chroot success\n");
+    fchdir(oldroot_fd);
+    mount("",".","",MS_SLAVE|MS_REC,NULL);
+    syscall(SYS_umount2, ".", MNT_DETACH);
+    chdir("/");
+    close(oldroot_fd);
+    close(newroot_fd);
 
     //mount the proc and then the ps commond can show the right result in new PID namespace
     char *mount_point = "proc";
