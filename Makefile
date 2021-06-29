@@ -1,3 +1,5 @@
+.PHONY: clean
+
 all:container
 
 container:container.c
