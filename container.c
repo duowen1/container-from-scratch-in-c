@@ -36,7 +36,7 @@ static int childfunction(void *arg){
     //map uid and gid
     int uid_fd,gid_fd;
     uid_fd = open("/proc/self/uid_map", O_WRONLY);
-    gid_fd = open("/proc/self/gid_map", O_WRONLY);
+    gid_fd = open("/proc/self/gid_map", O_WRONLY);//TODO
     dprintf(uid_fd, "0 1000 1\n");
     dprintf(gid_fd, "0 1000 1\n");
     close(uid_fd);
@@ -70,7 +70,6 @@ static int childfunction(void *arg){
 
     printf("[new]mount\n");
     char *rootfs=((char **)arg)[2];
-    
     mount("","/","",MS_SLAVE|MS_REC,NULL);
     mount(rootfs, rootfs, "bind", MS_BIND|MS_REC, NULL);
     chdir(rootfs);
@@ -100,45 +99,8 @@ static int childfunction(void *arg){
         }
     }
 
-    //spawn a shell
+    //No need to limit the capability if we choose to use user namespace
 
-    //I should utilize capabilities to limit
-
-    /*
-    cap_value_t cap_list[N];
-    cap_list[0]=CAP_SYS_CHROOT;
-    cap_list[1]=CAP_SYS_ADMIN;
-    cap_list[2]=CAP_SYS_TIME;
-    cap_list[3]=CAP_SYS_BOOT;
-    cap_list[4]=CAP_SYS_RAWIO;
-    cap_list[5]=CAP_SYSLOG;
-    cap_list[6]=CAP_DAC_READ_SEARCH;
-    cap_list[7]=CAP_LINUX_IMMUTABLE;
-    cap_list[8]=CAP_NET_BROADCAST;
-    cap_list[9]=CAP_NET_ADMIN;
-    cap_list[10]=CAP_IPC_LOCK;
-    cap_list[11]=CAP_IPC_OWNER;
-    cap_list[12]=CAP_SYS_MODULE;
-    cap_list[13]=CAP_SYS_PTRACE;
-    cap_list[14]=CAP_SYS_PACCT;
-    cap_list[15]=CAP_SYS_NICE;
-    cap_list[16]=CAP_SYS_RESOURCE;
-    cap_list[17]=CAP_SYS_TTY_CONFIG;
-    cap_list[18]=CAP_LEASE;
-    cap_list[19]=CAP_AUDIT_CONTROL; 
-    cap_list[20]=CAP_MAC_OVERRIDE;
-    cap_list[21]=CAP_MAC_ADMIN;
-    cap_list[21]=CAP_WAKE_ALARM;
-    cap_list[22]=CAP_BLOCK_SUSPEND;
-    
-    for(int i=0;i<N;i++){
-        res=prctl(PR_CAPBSET_DROP,cap_list[i]);
-        if(res!=0){
-            perror("prctl call fail\n");
-            return 0;
-        }
-    }
-    */
 
     init_seccomp();
 
@@ -150,20 +112,13 @@ int main(int argc, char *argv[]){
     list_capability(1);
     pid_t child_pid;
     struct utsname uts;
-    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWUSER;
+    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWUSER | CLONE_NEWCGROUP | CLONE_NEWTIME;
     child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
     if(child_pid==-1){
         //output error information and exit
         perror("Create process fail");
         exit(1);
     }else{
-
-        /*
-        if(unshare(CLONE_NEWTIME)){
-            perror("make new time namespace fail.\n");
-            return 0;
-        }
-        */
 
         //cgroup(child_pid);//set cgroup rules
 
@@ -257,14 +212,12 @@ void init_seccomp(){
     if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(unshare),0)<0){
         perror("seccomp_rule_add_fail");
         return;
-
     }
 
     if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(setns),0)<0){
         perror("seccomp_rule_add_fail");
         return;
     }
-
 
     if(seccomp_load(scmp)!=0){
         perror("failed to load the filter in the kernnel\n");
