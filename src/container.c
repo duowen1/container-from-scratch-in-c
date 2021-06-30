@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/prctl.h>
+#include <sys/syscall.h>
 #include <sched.h>
 #include <string.h>
 #include <stdio.h>
@@ -19,7 +20,7 @@
 static char child_stack[STACK_SIZE];//stack of child process
 
 void cgroup(pid_t);
-void init_seccomp();
+int init_seccomp();
 
 //the function which new process executed
 static int childfunction(void *arg){
@@ -43,12 +44,26 @@ static int childfunction(void *arg){
 
     //change root directory to rootfs
     char *rootfs=((char **)arg)[2];
-    res=chroot(rootfs);
-    if(res<0){
-        perror("Chroot fail");
+
+    mount("","/","",MS_SLAVE|MS_REC,NULL);
+    mount(rootfs,rootfs,"bind",MS_BIND | MS_REC, NULL);
+
+    chdir(rootfs);
+
+    int oldroot_fd = open("/",O_DIRECTORY | O_RDONLY,0);
+    int newroot_fd = open(rootfs,O_DIRECTORY | O_RDONLY,0);
+    
+    res = syscall(SYS_pivot_root, ".",".");
+    if(!res){
+        perror("pivot_root wrong");
     }
-    chdir("/");//change pwd to rootfs,without this the container might escape
-    printf("[new]chroot success\n");
+    fchdir(oldroot_fd);
+    mount("",".","",MS_SLAVE|MS_REC,NULL);
+    syscall(SYS_umount2,".",MNT_DETACH);
+    chdir("/");
+    close(oldroot_fd);
+    close(newroot_fd);
+
 
     //mount the proc and then the ps commond can show the right result in new PID namespace
     char *mount_point = "proc";
@@ -63,7 +78,12 @@ static int childfunction(void *arg){
     }
 
     init_capability();
-    init_seccomp();
+    res = init_seccomp();
+
+    if(res){
+        printf("init seccomp fail.\n");
+        return 0;
+    }
 
     char * args=NULL;
     execv("/bin/bash", &args);
