@@ -74,11 +74,8 @@ int main(int argc, char *argv[]){
     list_capability(1);
     pid_t child_pid;
     struct utsname uts;
-    if(unshare(CLONE_NEWTIME)){
-        perror("make new time namespace fail.\n");
-        return 0;
-    }
-    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET ;
+
+    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWIPC | CLONE_NEWTIME ;
     child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
     if(child_pid==-1){
         //output error information and exit
