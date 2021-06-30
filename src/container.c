@@ -1,28 +1,24 @@
 #define _GNU_SOURCE
+
+#include "cap.h"
 #include <sys/wait.h>
 #include <sys/utsname.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/capability.h>
 #include <sys/prctl.h>
 #include <sched.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <seccomp.h>
 
 #define STACK_SIZE (1024*1024)
-
 #define CLONE_NEWTIME 0x80
-
-#define N 23
 
 static char child_stack[STACK_SIZE];//stack of child process
 
 void cgroup(pid_t);
-void list_capability(int flag);
 void init_seccomp();
 
 //the function which new process executed
@@ -66,47 +62,11 @@ static int childfunction(void *arg){
         }
     }
 
-    //spawn a shell
-
-    //I should utilize capabilities to limit
-
-    cap_value_t cap_list[N];
-    cap_list[0]=CAP_SYS_CHROOT;
-    cap_list[1]=CAP_SYS_ADMIN;
-    cap_list[2]=CAP_SYS_TIME;
-    cap_list[3]=CAP_SYS_BOOT;
-    cap_list[4]=CAP_SYS_RAWIO;
-    cap_list[5]=CAP_SYSLOG;
-    cap_list[6]=CAP_DAC_READ_SEARCH;
-    cap_list[7]=CAP_LINUX_IMMUTABLE;
-    cap_list[8]=CAP_NET_BROADCAST;
-    cap_list[9]=CAP_NET_ADMIN;
-    cap_list[10]=CAP_IPC_LOCK;
-    cap_list[11]=CAP_IPC_OWNER;
-    cap_list[12]=CAP_SYS_MODULE;
-    cap_list[13]=CAP_SYS_PTRACE;
-    cap_list[14]=CAP_SYS_PACCT;
-    cap_list[15]=CAP_SYS_NICE;
-    cap_list[16]=CAP_SYS_RESOURCE;
-    cap_list[17]=CAP_SYS_TTY_CONFIG;
-    cap_list[18]=CAP_LEASE;
-    cap_list[19]=CAP_AUDIT_CONTROL; 
-    cap_list[20]=CAP_MAC_OVERRIDE;
-    cap_list[21]=CAP_MAC_ADMIN;
-    cap_list[21]=CAP_WAKE_ALARM;
-    cap_list[22]=CAP_BLOCK_SUSPEND;
-    
-    for(int i=0;i<N;i++){
-        res=prctl(PR_CAPBSET_DROP,cap_list[i]);
-        if(res!=0){
-            perror("prctl call fail\n");
-            return 0;
-        }
-    }
-
+    init_capability();
     init_seccomp();
 
-    execlp("/bin/bash",NULL);
+    char * args=NULL;
+    execv("/bin/bash", &args);
     return 0;
 }
 
@@ -153,78 +113,4 @@ int main(int argc, char *argv[]){
         }
     }
     return 0;
-}
-
-void cgroup(pid_t pid){
-    FILE *cgroup_cpu_fd = NULL;
-    FILE *cgroup_procs_fd = NULL;
-    mkdir("/sys/fs/cgroup/cpu/group1/",0755);
-
-    cgroup_cpu_fd=fopen("/sys/fs/cgroup/cpu/group1/cpu.cfs_quota_us","w");
-    if(cgroup_cpu_fd==NULL){
-        perror("Open fail fail");
-        exit(1);
-    }
-    fprintf(cgroup_cpu_fd,"%d",100000);
-    fclose(cgroup_cpu_fd);
-
-    cgroup_procs_fd=fopen("/sys/fs/cgroup/cpu/group1/cgroup.procs","w");
-    if(cgroup_procs_fd==NULL){
-        perror("Open file fail");
-        exit(1);
-    }
-    fprintf(cgroup_procs_fd,"%d",pid);
-    fclose(cgroup_procs_fd);
-    printf("Creat cgroup success\n");
-    return;
-}
-
-void list_capability(int flag){
-    struct __user_cap_header_struct cap_header_data;
-    cap_user_header_t cap_header = &cap_header_data;
-
-    struct __user_cap_data_struct cap_data_data;
-    cap_user_data_t cap_data = &cap_data_data;
-
-    cap_header->pid = getpid();
-    cap_header->version = _LINUX_CAPABILITY_VERSION_1;
-
-    if (capget(cap_header, cap_data) < 0) {
-        perror("Failed capget");
-        exit(1);
-    }
-    if(flag==1) printf("[old]");
-    else printf("[new]");
-    printf("Cap data permitted: 0x%x, effective: 0x%x, inheritable:0x%xn\n", 
-        cap_data->permitted, 
-        cap_data->effective,
-        cap_data->inheritable);
-    return;
-}
-
-void init_seccomp(){
-    scmp_filter_ctx scmp=seccomp_init(SCMP_ACT_ALLOW);
-
-    if(!scmp){
-        perror("failed to initialize libseccomp\n");
-        return;
-    }
-
-    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(unshare),0)<0){
-        perror("seccomp_rule_add_fail");
-        return;
-
-    }
-
-    if(seccomp_rule_add(scmp,SCMP_ACT_KILL,SCMP_SYS(setns),0)<0){
-        perror("seccomp_rule_add_fail");
-        return;
-    }
-
-
-    if(seccomp_load(scmp)!=0){
-        perror("failed to load the filter in the kernnel\n");
-        return;
-    }
-
 }

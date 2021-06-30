@@ -2,8 +2,8 @@
 
 all:container
 
-container:container.c
-	gcc container.c -o container -lcap -lseccomp
+container:./src/container.c
+	gcc ./src/*.c -o container -Wnonnull -lcap -lseccomp 
 
 server:server.c
 	gcc server.c -o server
