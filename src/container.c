@@ -9,6 +9,7 @@
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <sched.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,24 +43,30 @@ static int childfunction(void *arg){
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
     system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
 
+    printf("mounting\n");
     //change root directory to rootfs
     char *rootfs=((char **)arg)[2];
 
-    mount("","/","",MS_SLAVE|MS_REC,NULL);
-    mount(rootfs,rootfs,"bind",MS_BIND | MS_REC, NULL);
+    if(mount("", "/", "", MS_SLAVE | MS_REC,NULL)){
+        perror("mount , ");
+        return -1;
+    }
+    
+    mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL);
 
     chdir(rootfs);
 
-    int oldroot_fd = open("/",O_DIRECTORY | O_RDONLY,0);
-    int newroot_fd = open(rootfs,O_DIRECTORY | O_RDONLY,0);
-    
-    res = syscall(SYS_pivot_root, ".",".");
+    int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
+    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY, 0);
+    fchdir(newroot_fd);
+    res = syscall(SYS_pivot_root, ".", ".");
     if(!res){
         perror("pivot_root wrong");
     }
-    fchdir(oldroot_fd);
-    mount("",".","",MS_SLAVE|MS_REC,NULL);
-    syscall(SYS_umount2,".",MNT_DETACH);
+    res = fchdir(oldroot_fd);
+    printf("res = %d\n", res);
+    mount("", ".", "", MS_SLAVE | MS_REC, NULL);
+    syscall(SYS_umount2, ".", MNT_DETACH);
     chdir("/");
     close(oldroot_fd);
     close(newroot_fd);
