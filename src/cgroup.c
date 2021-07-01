@@ -1,9 +1,4 @@
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-extern void cgroup(pid_t);
+#include "cgroup.h"
 
 void cgroup(pid_t pid){
     FILE *cgroup_cpu_fd = NULL;

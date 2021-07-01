@@ -2,8 +2,11 @@
 
 all:container
 
-container:./src/container.c
-	gcc ./src/*.c -o container -Wnonnull -lcap -lseccomp 
+container:
+	gcc -c ./src/container.c -o test.o
+	gcc -c ./src/cap.c -o cap.o
+	gcc -c ./src/cgroup.c -o cgroup.o
+	gcc -o container test.o cap.o cgroup.o
 
 server:server.c
 	gcc server.c -o server
@@ -18,4 +21,5 @@ run:
 	sudo ./container mycontainer ../rootfs
 
 clean:
+	rm *.o
 	rm container

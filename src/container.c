@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 
 #include "cap.h"
+//#include "comp.h"
+#include "cgroup.h"
 #include <sys/wait.h>
 #include <sys/utsname.h>
 #include <sys/mount.h>
@@ -14,14 +16,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define STACK_SIZE (1024*1024)
 #define CLONE_NEWTIME 0x80
 
 static char child_stack[STACK_SIZE];//stack of child process
-
-void cgroup(pid_t);
-int init_seccomp();
 
 //the function which new process executed
 static int childfunction(void *arg){
@@ -32,7 +32,9 @@ static int childfunction(void *arg){
     char *hostname=((char **)arg)[1];
     sethostname(hostname,strlen(hostname));
     setdomainname(hostname,strlen(hostname));
-    printf("[new]childFunc(): PID = %ld\n",(long)getpid());
+
+    pid_t pid=syscall(SYS_getpid);
+    printf("[new]childFunc(): PID = %ld\n",(long)pid);
     printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
 
     sleep(1);//wait the parent namespace to set network
@@ -43,30 +45,23 @@ static int childfunction(void *arg){
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
     system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
 
-    printf("mounting\n");
-    //change root directory to rootfs
+
     char *rootfs=((char **)arg)[2];
-
-    if(mount("", "/", "", MS_SLAVE | MS_REC,NULL)){
-        perror("mount , ");
-        return -1;
-    }
-    
-    mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL);
-
-    chdir(rootfs);
-
+    mount("","/","",MS_PRIVATE,NULL);
+    mount(rootfs, rootfs, "bind", MS_BIND|MS_REC, NULL);
+    chdir(rootfs);    
     int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
-    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY, 0);
+    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY , 0);
     fchdir(newroot_fd);
-    res = syscall(SYS_pivot_root, ".", ".");
-    if(!res){
+    res = syscall(SYS_pivot_root, "." ,".");
+    if(res!=0){
         perror("pivot_root wrong");
     }
-    res = fchdir(oldroot_fd);
-    printf("res = %d\n", res);
-    mount("", ".", "", MS_SLAVE | MS_REC, NULL);
+    
+    fchdir(oldroot_fd);
+    mount("",".","",MS_SLAVE|MS_REC,NULL);
     syscall(SYS_umount2, ".", MNT_DETACH);
+    printf("8[new]mount\n");
     chdir("/");
     close(oldroot_fd);
     close(newroot_fd);
@@ -85,7 +80,7 @@ static int childfunction(void *arg){
     }
 
     init_capability();
-    res = init_seccomp();
+    //res = init_comp();
 
     if(res){
         printf("init seccomp fail.\n");
@@ -98,17 +93,19 @@ static int childfunction(void *arg){
 }
 
 int main(int argc, char *argv[]){
-    list_capability(1);
+    //list_capability(1);
     pid_t child_pid;
     struct utsname uts;
 
-    int flag=CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWIPC | CLONE_NEWTIME ;
-    child_pid=clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
-    if(child_pid==-1){
+    int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET ;
+    child_pid = clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
+    if(child_pid == -1){
         //output error information and exit
         perror("Create process fail");
         exit(1);
-    }else{
+    }
+    
+    else{
         cgroup(child_pid);//set cgroup rules
 
         system("ip link add veth0 type veth peer name veth1");
@@ -130,11 +127,14 @@ int main(int argc, char *argv[]){
         if(waitpid(child_pid,NULL,0)==-1){
             //output error information and exit
             perror("child terminate fail:");
+            printf("%d\n",errno);
             exit(1);
 
         }else{
             printf("[old]child has terminated\n");
         }
     }
+    
+    //waitpid(child_pid,NULL,0);
     return 0;
 }

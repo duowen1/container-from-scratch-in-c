@@ -1,4 +1,4 @@
-#include <seccomp.h>
+#include "comp.h"
 #include <stdio.h>
 
 int syscall[] = {
@@ -55,9 +55,7 @@ int syscall[] = {
     SCMP_SYS(vm86old)
 };
 
-extern int init_seccomp();
-
-int init_seccomp(){
+int init_comp(){
     scmp_filter_ctx scmp=seccomp_init(SCMP_ACT_ALLOW);
 
     if(!scmp){
