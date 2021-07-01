@@ -20,6 +20,5 @@ void cgroup(pid_t pid){
     }
     fprintf(cgroup_procs_fd,"%d",pid);
     fclose(cgroup_procs_fd);
-    printf("Creat cgroup success\n");
     return;
 }

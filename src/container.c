@@ -1,91 +1,34 @@
-#define _GNU_SOURCE
-
-#include "cap.h"
-//#include "comp.h"
-#include "cgroup.h"
-#include <sys/wait.h>
-#include <sys/utsname.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/prctl.h>
-#include <sys/syscall.h>
-#include <sched.h>
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-
-#define STACK_SIZE (1024*1024)
-#define CLONE_NEWTIME 0x80
-
-static char child_stack[STACK_SIZE];//stack of child process
+#include "container.h"
 
 //the function which new process executed
 static int childfunction(void *arg){
     int res;
-    //caps = cap_get_proc();
-    list_capability(2);
 
-    char *hostname=((char **)arg)[1];
-    sethostname(hostname,strlen(hostname));
-    setdomainname(hostname,strlen(hostname));
-
-    pid_t pid=syscall(SYS_getpid);
-    printf("[new]childFunc(): PID = %ld\n",(long)pid);
-    printf("[new]childFunc(): PPID = %ld\n", (long)getppid());
+    setup_hostname(((char **)arg)[1]);
+    printf("[SANDBOX]Set hostname success\n");
 
     sleep(1);//wait the parent namespace to set network
-    //setup container network
-    system("ip link set lo up");//turn on loop back address
-    system("ip link set veth1 up");//turn on the network advice
-    system("ip addr add 192.168.31.10/24 dev veth1");//set the ip address on device
-    //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
-    system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
-
-
-    char *rootfs=((char **)arg)[2];
-    mount("","/","",MS_PRIVATE,NULL);
-    mount(rootfs, rootfs, "bind", MS_BIND|MS_REC, NULL);
-    chdir(rootfs);    
-    int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
-    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY , 0);
-    fchdir(newroot_fd);
-    res = syscall(SYS_pivot_root, "." ,".");
-    if(res!=0){
-        perror("pivot_root wrong");
-    }
     
-    fchdir(oldroot_fd);
-    mount("",".","",MS_SLAVE|MS_REC,NULL);
-    syscall(SYS_umount2, ".", MNT_DETACH);
-    printf("8[new]mount\n");
-    chdir("/");
-    close(oldroot_fd);
-    close(newroot_fd);
-
-
-    //mount the proc and then the ps commond can show the right result in new PID namespace
-    char *mount_point = "proc";
-    if(mount_point != NULL){
-        mkdir(mount_point,0555);
-        if(mount("proc",mount_point,"proc",0,NULL)==-1){
-            perror("Mount fail");
-            exit(1);
-        }else{
-            printf("[new]Mounting procfs as %s\n",mount_point);
-        }
+    //setup container network
+    res = setup_network();
+    if(res){
+        printf("[SANDBOX]Init network wrong\n");
+    }else{
+        printf("[SANDBOX]Init network success\n");
     }
+
+    setup_rootfs(((char **)arg)[2]);
+    printf("[SANDBOX]Init rootfs success\n");
+
+    setup_proc();
+    printf("[SANDBOX]Mount proc pesudo file system success\n");
 
     init_capability();
-    //res = init_comp();
+    printf("[SANDBOX]Init capability success, show:\n");
+    list_capability(2);
 
-    if(res){
-        printf("init seccomp fail.\n");
-        return 0;
-    }
+    res = init_comp();
+    printf("[SANDBOX]Init seccomp success\n");
 
     char * args=NULL;
     execv("/bin/bash", &args);
@@ -93,7 +36,7 @@ static int childfunction(void *arg){
 }
 
 int main(int argc, char *argv[]){
-    //list_capability(1);
+    list_capability(HOST);
     pid_t child_pid;
     struct utsname uts;
 
@@ -107,6 +50,7 @@ int main(int argc, char *argv[]){
     
     else{
         cgroup(child_pid);//set cgroup rules
+        printf("[HOST]Creat sandbox cgroup success\n");
 
         system("ip link add veth0 type veth peer name veth1");
         char cmd[100];
@@ -118,10 +62,9 @@ int main(int argc, char *argv[]){
             //output error information and exit
             perror("uname fail: ");
             exit(1);
-
         }else{
-            printf("[old]PID returned by clone(): %ld\n",(long)child_pid);
-            printf("[old]uts.nodename in parent : %s\n",uts.nodename);
+            printf("[HOST]PID returned by clone(): %ld\n",(long)child_pid);
+            printf("[HOST]uts.nodename in parent : %s\n",uts.nodename);
         }
         sleep(2);
         if(waitpid(child_pid,NULL,0)==-1){
@@ -131,10 +74,77 @@ int main(int argc, char *argv[]){
             exit(1);
 
         }else{
-            printf("[old]child has terminated\n");
+            printf("[HOST]child has terminated\n");
         }
     }
     
-    //waitpid(child_pid,NULL,0);
+    return 0;
+}
+
+
+int setup_hostname(char * hostname){
+    int res = sethostname(hostname,strlen(hostname));
+    if(res){
+        perror("[SANDBOX]sethostname fail:");
+        exit(1);
+    }
+    res = setdomainname(hostname,strlen(hostname));
+    if(res){
+        perror("[SANDBOX]setdomainname fail:");
+        exit(1);
+    }
+    return res;
+}
+
+int setup_network(){
+    int res;
+    res = system("ip link set lo up");//turn on loop back address
+    system("ip link set veth1 up");//turn on the network advice
+    system("ip addr add 192.168.31.10/24 dev veth1");//set the ip address on device
+    //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
+    system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
+
+    return res;
+}
+
+int setup_rootfs(char * rootfs){
+    int res;
+    mount("", "/", "", MS_PRIVATE, NULL);
+    mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL);
+    chdir(rootfs);    
+    int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
+    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY , 0);
+    fchdir(newroot_fd);
+
+    res = syscall(SYS_pivot_root, "." ,".");
+    if(res!=0){
+        perror("pivot_root wrong");
+        exit(1);
+    }
+    
+    fchdir(oldroot_fd);
+    mount("",".","",MS_SLAVE|MS_REC,NULL);
+    res = syscall(SYS_umount2, ".", MNT_DETACH);
+    if(res!=0){
+        perror("umount2 wrong");
+        exit(1);
+    }
+
+    chdir("/");
+
+    close(oldroot_fd);
+    close(newroot_fd);
+    return res;
+}
+
+int setup_proc(){
+    char *mount_point = "proc";
+    if(mount_point != NULL){
+        mkdir(mount_point,0555);
+        if(mount("proc",mount_point,"proc",0,NULL)==-1){
+            perror("Mount fail");
+            exit(1);
+        }
+    }
     return 0;
 }

@@ -1,7 +1,8 @@
 #include "comp.h"
 #include <stdio.h>
 
-int syscall[] = {
+int init_comp(){
+    int syscall[] = {
     SCMP_SYS(acct),
     SCMP_SYS(add_key),
     SCMP_SYS(bpf),
@@ -52,10 +53,8 @@ int syscall[] = {
     SCMP_SYS(userfaultfd),
     SCMP_SYS(ustat),
     SCMP_SYS(vm86),
-    SCMP_SYS(vm86old)
-};
-
-int init_comp(){
+    SCMP_SYS(vm86old)};
+    
     scmp_filter_ctx scmp=seccomp_init(SCMP_ACT_ALLOW);
 
     if(!scmp){
@@ -64,7 +63,6 @@ int init_comp(){
     }
 
     int lenth = sizeof(syscall) / sizeof(int);
-    printf("[seccomp] lenth=%d",lenth);
 
     for(int i=0; i<lenth; i++){
         if(seccomp_rule_add(scmp,SCMP_ACT_KILL,syscall[i],0)<0){
@@ -77,6 +75,5 @@ int init_comp(){
         perror("failed to load the filter in the kernnel\n");
         return 1;
     }
-
     return 0;
 }

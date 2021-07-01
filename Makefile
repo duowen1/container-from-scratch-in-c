@@ -6,7 +6,9 @@ container:
 	gcc -c ./src/container.c -o test.o
 	gcc -c ./src/cap.c -o cap.o
 	gcc -c ./src/cgroup.c -o cgroup.o
-	gcc -o container test.o cap.o cgroup.o
+	gcc -c ./src/comp.c -o comp.o
+	gcc -o container test.o cap.o cgroup.o comp.o -lseccomp
+	rm *.o
 
 server:server.c
 	gcc server.c -o server
@@ -21,5 +23,4 @@ run:
 	sudo ./container mycontainer ../rootfs
 
 clean:
-	rm *.o
 	rm container
