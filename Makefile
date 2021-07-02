@@ -16,8 +16,8 @@ server:server.c
 client:client.c
 	gcc client.c -o client
 
-threads-cpu: cpu-hungry.c
-	gcc -o threads-cpu cpu-hungry.c -lpthread
+threads-cpu: ./test/cpu-hungry.c
+	gcc -o threads-cpu ./test/cpu-hungry.c -lpthread
 
 run:
 	sudo ./container mycontainer ../rootfs

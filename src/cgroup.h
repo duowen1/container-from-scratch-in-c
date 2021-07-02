@@ -7,5 +7,7 @@
 #include <unistd.h>
 
 extern void cgroup(pid_t);
+int init_cpuset_cgroup(pid_t);
+int init_cpu_cgroup(pid_t);
 
 #endif
