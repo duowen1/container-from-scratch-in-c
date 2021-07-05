@@ -3,6 +3,7 @@
 void cgroup(pid_t pid){
     init_cpu_cgroup(pid);
     init_cpuset_cgroup(pid); 
+    init_memory_cgroup(pid);
 }
 
 int init_cpu_cgroup(pid_t pid){
@@ -50,6 +51,38 @@ int init_cpuset_cgroup(pid_t pid){
     fclose(cgroup_cpuset_fd);
 
     cgroup_procs_fd=fopen("/sys/fs/cgroup/cpuset/group1/cgroup.procs","w");
+    if(cgroup_procs_fd==NULL){
+        perror("[cpuset procs]Open file fail");
+        exit(1);
+    }
+    fprintf(cgroup_procs_fd,"%d",pid);
+    fclose(cgroup_procs_fd);
+    return 0;
+}
+
+int init_memory_cgroup(pid_t pid){
+    FILE *cgroup_memorylimit_fd = NULL;
+    FILE *cgroup_oomcontrol_fd = NULL;
+    FILE *cgroup_procs_fd = NULL;
+    mkdir("/sys/fs/cgroup/memory/group1/",0755);
+
+    cgroup_memorylimit_fd=fopen("/sys/fs/cgroup/memory/group1/memory.limit_in_bytes","w");
+    if(cgroup_memorylimit_fd==NULL){
+        perror("[cpuset]Open fail fail");
+        exit(1);
+    }
+    fprintf(cgroup_memorylimit_fd,"%d",MEMORY_LIMIT);
+    fclose(cgroup_memorylimit_fd);
+
+    cgroup_oomcontrol_fd = fopen("/sys/fs/cgroup/memory/group1/memory.oom_control","w");
+        if(cgroup_oomcontrol_fd==NULL){
+        perror("[cpuset mem]Open fail fail");
+        exit(1);
+    }
+    fprintf(cgroup_oomcontrol_fd,"0");
+    fclose(cgroup_oomcontrol_fd);
+
+    cgroup_procs_fd=fopen("/sys/fs/cgroup/memory/group1/cgroup.procs","w");
     if(cgroup_procs_fd==NULL){
         perror("[cpuset procs]Open file fail");
         exit(1);
