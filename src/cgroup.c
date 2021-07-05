@@ -63,6 +63,7 @@ int init_cpuset_cgroup(pid_t pid){
 int init_memory_cgroup(pid_t pid){
     FILE *cgroup_memorylimit_fd = NULL;
     FILE *cgroup_oomcontrol_fd = NULL;
+    FILE *cgroup_swap_fd = NULL;
     FILE *cgroup_procs_fd = NULL;
     mkdir("/sys/fs/cgroup/memory/group1/",0755);
 
@@ -75,12 +76,16 @@ int init_memory_cgroup(pid_t pid){
     fclose(cgroup_memorylimit_fd);
 
     cgroup_oomcontrol_fd = fopen("/sys/fs/cgroup/memory/group1/memory.oom_control","w");
-        if(cgroup_oomcontrol_fd==NULL){
+    if(cgroup_oomcontrol_fd==NULL){
         perror("[cpuset mem]Open fail fail");
         exit(1);
     }
     fprintf(cgroup_oomcontrol_fd,"0");
     fclose(cgroup_oomcontrol_fd);
+
+    cgroup_swap_fd = fopen("/sys/fs/cgroup/memory/group1/memory.swappiness","w");
+    fprintf(cgroup_swap_fd, "0");
+    fclose(cgroup_swap_fd);
 
     cgroup_procs_fd=fopen("/sys/fs/cgroup/memory/group1/cgroup.procs","w");
     if(cgroup_procs_fd==NULL){
