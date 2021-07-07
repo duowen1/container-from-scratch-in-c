@@ -10,7 +10,7 @@ int main(){
     char buffer[1024];
     struct sockaddr_in server={0};
     int port = 5050 ,nbytes;
-    char *serverip = "192.168.31.10";
+    char *serverip = "172.10.0.201";
 
     if((sockfd = socket(AF_INET , SOCK_STREAM , 0))==-1){
         perror("Socket fail : ");
@@ -28,7 +28,7 @@ int main(){
         exit(1);
     }
     nbytes = read(sockfd , buffer , 1024);
-    if(nbytes < 0){
+    if(nbytes <= 0){
         printf("Read error:%s\n",strerror(errno));
         exit(1);
     }

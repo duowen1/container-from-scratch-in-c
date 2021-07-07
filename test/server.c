@@ -24,6 +24,8 @@ int main(){
     server.sin_addr.s_addr=htonl(INADDR_ANY);
     server.sin_port=htons(port);
 
+    sin_size = sizeof(struct sockaddr);
+
     if(-1==bind(sockfd,(struct sockaddr *)(&server),sizeof(struct sockaddr))){
         perror("Bind error");
         exit(1);

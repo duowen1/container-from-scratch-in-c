@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
     pid_t child_pid;
     struct utsname uts;
 
-    int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET ;
+    int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWCGROUP;
     child_pid = clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
     if(child_pid == -1){
         //output error information and exit
@@ -51,13 +51,30 @@ int main(int argc, char *argv[]){
     else{
         cgroup(child_pid);//set cgroup rules
         printf("[HOST]Creat sandbox cgroup success\n");
+        
+        int res;
 
         system("ip link add veth0 type veth peer name veth1");
+        system("brctl addif br0 veth0");
+        res = system("ip link set veth0 up");
+
+        if(res){
+            perror("ip linke set veth0 up fail");
+            exit(1);
+        }
+
+
+
         char cmd[100];
         sprintf(cmd,"ip link set veth1 netns %d",child_pid);
-        system(cmd);
-        system("ip link set veth0 up");
-        system("ip addr add 192.168.31.1/24 dev veth0");
+        res = system(cmd);
+
+        if(res){
+            perror("ip link set veth1 netns chile_pid fail");
+            exit(1);
+        }
+        
+        //system("ip addr add 192.168.31.1/24 dev veth0");
         if(uname(&uts)==-1){//print the uts from host
             //output error information and exit
             perror("uname fail: ");
@@ -100,9 +117,9 @@ int setup_network(){
     int res;
     res = system("ip link set lo up");//turn on loop back address
     system("ip link set veth1 up");//turn on the network advice
-    system("ip addr add 192.168.31.10/24 dev veth1");//set the ip address on device
+    system("ip addr add 172.10.0.201/24 dev veth1");//set the ip address on device
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
-    system("route add default gw 192.168.31.1 veth1");//add the net gate address to iptables
+    system("route add default gw 172.10.0.1");//add the net gate address to iptables
 
     return res;
 }

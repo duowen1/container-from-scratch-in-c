@@ -1,7 +1,9 @@
 [toc]
-# Namespace
+# Namespaces
 
 ## PID Namespace
+
+### 挂载`/proc`伪文件系统
 
 ## UTS Namespace
 
@@ -14,6 +16,10 @@
 ## IPC Namespace
 
 ## Net Namespace
+
+### 网桥
+
+### NAT
 
 ## Time Namespace
 
@@ -31,6 +37,9 @@ User Namespace是仅在Rootless mode下启用
 
 ## memory子系统
 
+### swap
+
+
 ## blkio子系统
 
 ## devices子系统
@@ -46,5 +55,6 @@ User Namespace是仅在Rootless mode下启用
 
 
 # Seccomp
+
 
 # 代码结构
