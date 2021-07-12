@@ -3,7 +3,7 @@
 
 ## PID Namespace
 
-### 挂载`/proc`伪文件系统
+### Mount `/proc` peseudo file system 
 
 ## UTS Namespace
 
@@ -17,7 +17,7 @@
 
 ## Net Namespace
 
-### 网桥
+### Net Bridge
 
 ### NAT
 
@@ -29,32 +29,53 @@ User Namespace是仅在Rootless mode下启用
 
 # Control Groups
 
-## cpu子系统
+## cpu sub-system
 
-## cpuacct子系统
+## cpuacct sub-system
 
-## cpuset子系统
+## cpuset sub-system
 
-## memory子系统
+## memory sub-system
 
 ### swap
 
-
-## blkio子系统
-
-## devices子系统
-
-## net_cls子系统
-
-## freezer子系统
-
-## ns子系统
-
+## freezer sub-system
 
 # Capabilities
 
-
 # Seccomp
 
+# Code Structure
 
-# 代码结构
+```
+$tree .
+.
+├── detail.md
+├── Makefile
+├── Readme.md
+├── src
+│   ├── cap.c
+│   ├── cap.h
+│   ├── cgroup.c
+│   ├── cgroup.h
+│   ├── comp.c
+│   ├── comp.h
+│   ├── container.c
+│   ├── container.h
+│   └── Makefile
+└── test
+    ├── cgroup_test
+    │   ├── cpu_cgroup
+    │   │   ├── cpu-hungry.c
+    │   │   └── Makefile
+    │   └── mem_cgroup
+    │       ├── Makefile
+    │       └── mem_alloc.c
+    └── namespace_test
+        └── net
+            ├── client.c
+            ├── Makefile
+            └── server.c
+
+7 directories, 19 files
+```

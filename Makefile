@@ -1,4 +1,4 @@
-.PHONY: all container netns memcgroup cpucgroup clean
+.PHONY: all container netns memcgroup cpucgroup clean run
 
 all: container netns memcgroup cpucgroup
 
@@ -19,3 +19,6 @@ clean:
 	cd test/cgroup_test/mem_cgroup && make clean
 	cd test/cgroup_test/cpu_cgroup && make clean
 	cd test/namespace_test/net && make clean
+
+run: container
+	cd src && make run
