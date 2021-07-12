@@ -1,26 +1,21 @@
-.PHONY: clean
+.PHONY: all container netns memcgroup cpucgroup clean
 
-all:container
+all: container netns memcgroup cpucgroup
 
 container:
-	gcc -c ./src/container.c -o test.o
-	gcc -c ./src/cap.c -o cap.o
-	gcc -c ./src/cgroup.c -o cgroup.o
-	gcc -c ./src/comp.c -o comp.o
-	gcc -o container test.o cap.o cgroup.o comp.o -lseccomp
-	rm *.o
+	cd src && make
 
-server:server.c
-	gcc server.c -o server
+memcgroup:
+	cd test/cgroup_test/mem_cgroup && make
 
-client:client.c
-	gcc client.c -o client
+cpucgroup:
+	cd test/cgroup_test/cpu_cgroup && make
 
-threads-cpu: ./test/cpu-hungry.c
-	gcc -o threads-cpu ./test/cpu-hungry.c -lpthread
-
-run:
-	sudo ./container mycontainer ../rootfs
+netns:
+	cd test/namespace_test/net && make
 
 clean:
-	rm container
+	cd src && make clean
+	cd test/cgroup_test/mem_cgroup && make clean
+	cd test/cgroup_test/cpu_cgroup && make clean
+	cd test/namespace_test/net && make clean
