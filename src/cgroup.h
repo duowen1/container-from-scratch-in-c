@@ -10,6 +10,7 @@ extern void cgroup(pid_t);
 int init_cpuset_cgroup(pid_t);
 int init_cpu_cgroup(pid_t);
 int init_memory_cgroup(pid_t);
+int init_cgroup_v2(pid_t);
 
 #define MEMORY_LIMIT 512*1024*1024 //512M
 

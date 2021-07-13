@@ -96,3 +96,10 @@ $tree .
 
 7 directories, 19 files
 ```
+
+# Some Questions
+1. 外网的连通性
+
+目前可以完成和宿主机的通信
+
+2. 对文件系统写入的限制

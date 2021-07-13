@@ -4,6 +4,7 @@ void cgroup(pid_t pid){
     init_cpu_cgroup(pid);
     init_cpuset_cgroup(pid); 
     init_memory_cgroup(pid);
+    init_cgroup_v2(pid);
 }
 
 int init_cpu_cgroup(pid_t pid){
@@ -95,4 +96,40 @@ int init_memory_cgroup(pid_t pid){
     fprintf(cgroup_procs_fd,"%d",pid);
     fclose(cgroup_procs_fd);
     return 0;
+}
+
+int init_cgroup_v2(pid_t pid){
+
+    mkdir("/sys/fs/cgroup/unified/group1",0755);//use cgroup v2 to limit the bandwith of io
+    FILE * cgroup_subtree_fd;
+    FILE * cgroup_procs_fd;
+    FILE * cgroup_iomax_fd;
+
+    cgroup_subtree_fd = fopen("/sys/fs/cgroup/unified/cgroup.subtree_control","w");
+    if(cgroup_subtree_fd == NULL){
+        perror("[cgroup v2]Open subtree fail.");
+        exit(1);
+    }
+    fprintf(cgroup_subtree_fd,"+io +memory");
+    fclose(cgroup_subtree_fd);
+
+    cgroup_procs_fd = fopen("/sys/fs/cgroup/unified/group1/cgroup.procs","w");
+    if(cgroup_procs_fd == NULL){
+        perror("[cgroup v2]Open cgroup.procs fail");
+        exit(1);
+    }
+    fprintf(cgroup_procs_fd,"%d",pid);
+    fclose(cgroup_procs_fd);
+
+    cgroup_iomax_fd = fopen("/sys/fs/cgroup/unified/group1/io.max");
+    if(cgroup_iomax_fd == NULL){
+        perror("[cgroup v2]Open io.max fail");
+        exit(1);
+    }
+    fprintf(cgroup_iomax_fd,"%d:%d wbps=%d",8,5,10485760);
+    fclose(cgroup_iomax_fd);
+
+    return 0;
+
+
 }
