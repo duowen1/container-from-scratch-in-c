@@ -1,9 +1,9 @@
 #include "cgroup.h"
 
 void cgroup(pid_t pid){
-    init_cpu_cgroup(pid);
-    init_cpuset_cgroup(pid); 
-    init_memory_cgroup(pid);
+    //init_cpu_cgroup(pid);
+    //init_cpuset_cgroup(pid); 
+    //init_memory_cgroup(pid);
     init_cgroup_v2(pid);
 }
 
@@ -121,7 +121,7 @@ int init_cgroup_v2(pid_t pid){
     fprintf(cgroup_procs_fd,"%d",pid);
     fclose(cgroup_procs_fd);
 
-    cgroup_iomax_fd = fopen("/sys/fs/cgroup/unified/group1/io.max");
+    cgroup_iomax_fd = fopen("/sys/fs/cgroup/unified/group1/io.max","w");
     if(cgroup_iomax_fd == NULL){
         perror("[cgroup v2]Open io.max fail");
         exit(1);
@@ -130,6 +130,4 @@ int init_cgroup_v2(pid_t pid){
     fclose(cgroup_iomax_fd);
 
     return 0;
-
-
 }

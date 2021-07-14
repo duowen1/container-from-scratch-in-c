@@ -10,12 +10,14 @@ static int childfunction(void *arg){
     sleep(1);//wait the parent namespace to set network
     
     //setup container network
+    /*
     res = setup_network();
     if(res){
         printf("[SANDBOX]Init network wrong\n");
     }else{
         printf("[SANDBOX]Init network success\n");
     }
+    */
 
     setup_rootfs(((char **)arg)[2]);
     printf("[SANDBOX]Init rootfs success\n");
