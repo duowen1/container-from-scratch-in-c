@@ -100,34 +100,50 @@ int init_memory_cgroup(pid_t pid){
 
 int init_cgroup_v2(pid_t pid){
 
-    mkdir("/sys/fs/cgroup/unified/group1",0755);//use cgroup v2 to limit the bandwith of io
+    mkdir("/sys/fs/cgroup/group2",0755);//use cgroup v2 to limit the bandwith of io
     FILE * cgroup_subtree_fd;
     FILE * cgroup_procs_fd;
     FILE * cgroup_iomax_fd;
+    FILE * memory_max_fd;
+    FILE * memory_swap_max_fd;
+    
+    int m;
 
-    cgroup_subtree_fd = fopen("/sys/fs/cgroup/unified/cgroup.subtree_control","w");
-    if(cgroup_subtree_fd == NULL){
-        perror("[cgroup v2]Open subtree fail.");
-        exit(1);
-    }
-    fprintf(cgroup_subtree_fd,"+io +memory");
-    fclose(cgroup_subtree_fd);
-
-    cgroup_procs_fd = fopen("/sys/fs/cgroup/unified/group1/cgroup.procs","w");
+    cgroup_procs_fd = fopen("/sys/fs/cgroup/group2/cgroup.procs","w");
     if(cgroup_procs_fd == NULL){
         perror("[cgroup v2]Open cgroup.procs fail");
         exit(1);
     }
-    fprintf(cgroup_procs_fd,"%d",pid);
+    m = fprintf(cgroup_procs_fd,"%d",pid);
     fclose(cgroup_procs_fd);
 
-    cgroup_iomax_fd = fopen("/sys/fs/cgroup/unified/group1/io.max","w");
+
+
+    memory_max_fd = fopen("/sys/fs/cgroup/group2/memory.max","w");
+    if(memory_max_fd == NULL){
+        perror("open memory max fail");
+        exit(1);
+    }
+    fprintf(memory_max_fd,"%d",50*1024*1024);
+    fclose(memory_max_fd);
+
+    memory_swap_max_fd = fopen("/sys/fs/cgroup/group2/memory.swap.max","w");
+    if(memory_swap_max_fd == NULL){
+        perror("open memory max fail");
+        exit(1);
+    }
+    fprintf(memory_swap_max_fd,"%d",0);
+    fclose(memory_swap_max_fd);
+
+    cgroup_iomax_fd = fopen("/sys/fs/cgroup/group2/io.max","w");
     if(cgroup_iomax_fd == NULL){
         perror("[cgroup v2]Open io.max fail");
         exit(1);
     }
-    fprintf(cgroup_iomax_fd,"%d:%d wbps=%d",8,5,10485760);
+    m = fprintf(cgroup_iomax_fd,"%d:%d wbps=%d",8,5,2097152);
     fclose(cgroup_iomax_fd);
+    
+    printf("write io.max %d",m);
 
     return 0;
 }

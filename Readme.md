@@ -43,20 +43,44 @@
 ## User Namespace
 User Namespace是仅在Rootless mode下启用
 
-
 # Control Groups
 
-## cpu sub-system
+## Cgroup V1
 
-## cpuacct sub-system
+### cpu sub-system
 
-## cpuset sub-system
+### cpuacct sub-system
 
-## memory sub-system
+### cpuset sub-system
 
-### swap
+### memory sub-system
+
+#### swap
 
 ## freezer sub-system
+
+## Cgroup V2
+
+**为什么要使用Cgroup v2**
+- 和V1相比，Cgroup V2的设计思路更加直接，尤其是实现了Buffer IO的限制，这也是采用Cgroup V2最大的殷殷。
+
+**如何开启Cgroup V2**
+- 修改内核引导参数，在`/etc/default/grub`中添加：
+
+```
+GRUB_CMDlINE_LINUX="... systemd.unified_group_hierachy=1"
+```
+
+然后执行：
+```
+sudo update-grub
+sudo reboot
+```
+
+### IO sub-system
+
+Cgroup V1中对于IO的速率没有进行Buffer IO的限制，在生产环境中这种限制没有任何意思。在Cgroup V2中解决了这个问题
+
 
 # Capabilities
 
@@ -103,3 +127,10 @@ $tree .
 目前可以完成和宿主机的通信
 
 2. 对文件系统写入的限制
+
+
+# Reference
+
+- [CS 695:Virtualization and Cloud Computing](https://www.cse.iitb.ac.in/~cs695/)
+- [详解Cgroup v2](https://zorrozou.github.io/docs/%E8%AF%A6%E8%A7%A3Cgroup%20V2.html)
+- [Cgroup v2官方文档](https://www.kernel.org/doc/html/v5.7/admin-guide/cgroup-v2.html)
