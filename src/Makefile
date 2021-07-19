@@ -22,4 +22,4 @@ $(CONTAINER) : $(OBJS_FILE)
 	$(CC) -o $@ $^ $(LKFLAGS)
 
 run :
-	sudo ./$(CONTAINER) $(CONTAINER_FLAGS)
+	sudo ./$(CONTAINER) run $(CONTAINER_FLAGS)

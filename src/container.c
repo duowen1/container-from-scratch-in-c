@@ -4,20 +4,22 @@
 static int childfunction(void *arg){
     int res;
 
-    setup_hostname(((char **)arg)[1]);
+    setup_hostname(((char **)arg)[2]);
     printf("[SANDBOX]Set hostname success\n");
 
     sleep(1);//wait the parent namespace to set network
     
     //setup container network
+    /*
     res = setup_network();
     if(res){
         printf("[SANDBOX]Init network wrong\n");
     }else{
         printf("[SANDBOX]Init network success\n");
     }
+    */
 
-    setup_rootfs(((char **)arg)[2]);
+    setup_rootfs(((char **)arg)[3]);
     printf("[SANDBOX]Init rootfs success\n");
 
     setup_proc();
@@ -36,65 +38,22 @@ static int childfunction(void *arg){
 }
 
 int main(int argc, char *argv[]){
-    list_capability(HOST);
-    pid_t child_pid;
-    struct utsname uts;
-
-    int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWCGROUP;
-    child_pid = clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
-    if(child_pid == -1){
-        //output error information and exit
-        perror("Create process fail");
-        exit(1);
+    if(!strcmp(argv[1],"exec")){//如果是exec命令
+        container_exec(argv);
     }
-    
-    else{
-        cgroup(child_pid);//set cgroup rules
-        printf("[HOST]Creat sandbox cgroup success\n");
-        
-        int res;
 
-        system("ip link add veth0 type veth peer name veth1");
-        system("brctl addif br0 veth0");
-        res = system("ip link set veth0 up");
-
-        if(res){
-            perror("ip linke set veth0 up fail");
-            exit(1);
-        }
-
-
-
-        char cmd[100];
-        sprintf(cmd,"ip link set veth1 netns %d",child_pid);
-        res = system(cmd);
-
-        if(res){
-            perror("ip link set veth1 netns chile_pid fail");
-            exit(1);
-        }
-        
-        //system("ip addr add 192.168.31.1/24 dev veth0");
-        if(uname(&uts)==-1){//print the uts from host
-            //output error information and exit
-            perror("uname fail: ");
-            exit(1);
-        }else{
-            printf("[HOST]PID returned by clone(): %ld\n",(long)child_pid);
-            printf("[HOST]uts.nodename in parent : %s\n",uts.nodename);
-        }
-        sleep(2);
-        if(waitpid(child_pid,NULL,0)==-1){
-            //output error information and exit
-            perror("child terminate fail:");
-            printf("%d\n",errno);
-            exit(1);
-
-        }else{
-            printf("[HOST]child has terminated\n");
-        }
+    if(!strcmp(argv[1],"run")){//如果是run命令
+        container_run(argv);
     }
-    
+
+    if(!strcmp(argv[1],"cp")){//如果是cp命令
+        container_cp(argv);
+    }
+
+    if(!strcmp(argv[1],"help")){//如果是help命令
+        container_help();
+    }
+
     return 0;
 }
 
@@ -164,4 +123,109 @@ int setup_proc(){
         }
     }
     return 0;
+}
+
+int container_run(char *argv[]){
+
+    checkroot();
+
+    int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWCGROUP;
+
+    list_capability(HOST);
+    pid_t child_pid;
+    struct utsname uts;
+
+    child_pid = clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
+    if(child_pid == -1){
+        //output error information and exit
+        perror("Create process fail");
+        exit(1);
+    }
+    else{
+        cgroup(child_pid);//set cgroup rules
+        printf("[HOST]Creat sandbox cgroup success\n");
+        
+        int res;
+        /*
+        system("ip link add veth0 type veth peer name veth1");
+        system("brctl addif br0 veth0");
+        res = system("ip link set veth0 up");
+
+        if(res){
+            perror("ip linke set veth0 up fail");
+            exit(1);
+        }
+
+        char cmd[100];
+        sprintf(cmd,"ip link set veth1 netns %d",child_pid);
+        res = system(cmd);
+
+        if(res){
+            perror("ip link set veth1 netns chile_pid fail");
+            exit(1);
+        }*/
+        
+        //system("ip addr add 192.168.31.1/24 dev veth0");
+        if(uname(&uts)==-1){//print the uts from host
+            //output error information and exit
+            perror("uname fail: ");
+            exit(1);
+        }else{
+            printf("[HOST]PID returned by clone(): %ld\n",(long)child_pid);
+            printf("[HOST]uts.nodename in parent : %s\n",uts.nodename);
+        }
+        sleep(2);
+        if(waitpid(child_pid,NULL,0)==-1){
+            //output error information and exit
+            perror("child terminate fail:");
+            printf("%d\n",errno);
+            exit(1);
+
+        }else{
+            printf("[HOST]child has terminated\n");
+        }
+    }
+
+}
+
+int container_exec(char *argv[]){
+    checkroot();
+
+    pid_t target_pid = atoi(argv[2]);
+    char fname[PATH_MAX];
+
+    for (int i=0; i < 6; i++){
+        snprintf(fname, (int)sizeof(fname),"/proc/%d/ns/%s",target_pid,NSS[i]);
+
+        int ns_fd = open(fname,O_RDONLY);
+        setns(ns_fd,0);
+        close(ns_fd);
+
+        if(strcmp(NSS[i],"pid")==0){//如果是pid namespace
+            if(fork()){//创建子进程，只有创建子进程才能进入
+                sleep(1000);//主进程退出
+
+            }else{
+                char * args=NULL;
+                execv("/bin/bash", &args);
+            }
+        }
+    }
+}
+
+int container_cp(char * argv[]){
+    checkroot();
+    return 0;
+}
+
+int container_help(){
+    printf("Usage: container <command> [ops]\n");
+    return 0;
+}
+
+int checkroot(){
+    if(getuid()){
+        printf("run me as root");
+        exit(1);
+    }
 }

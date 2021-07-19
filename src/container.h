@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+#include <linux/limits.h>
 #include <sched.h>
 #include <fcntl.h>
 #include <string.h>
@@ -23,7 +24,23 @@
 
 static char child_stack[STACK_SIZE];//stack of child process
 
+int container_run(char **);
+int container_exec(char **);
+int container_cp(char **);
+int container_help();
+
+int checkroot();
+
 int setup_hostname(char *);
 int setup_network();
 int setup_rootfs();
 int setup_proc();
+
+const char *NSS[] = {
+    "mnt",
+    "uts",
+    "ipc",
+    "net",
+    "cgroup",
+    "pid",
+};
