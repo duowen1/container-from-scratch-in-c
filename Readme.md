@@ -79,7 +79,7 @@ sudo reboot
 
 ### IO sub-system
 
-Cgroup V1中对于IO的速率没有进行Buffer IO的限制，在生产环境中这种限制没有任何意思。在Cgroup V2中解决了这个问题
+Cgroup V1中对于IO的速率没有进行Buffer IO的限制，在生产环境中这种限制没有任何意义。在Cgroup V2中解决了这个问题
 
 
 # Capabilities
