@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -c
 LKFLAGS = -lseccomp
 CONTAINER = container
-CONTAINER_FLAGS = mycontainer ../../rootfs
+CONTAINER_FLAGS = mycontainer ../../tmp1
 OBJS_FILE = cap.o cgroup.o comp.o container.o
 
 .PHONY : all everything $(CONTAINER)
