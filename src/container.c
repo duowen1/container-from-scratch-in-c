@@ -213,8 +213,18 @@ int container_exec(char *argv[]){
     }
 }
 
-int container_cp(char * argv[]){
+int container_cp(char * argv[]){//目前仅支持从文件复制到容器内，在没有实现unionfs的情况下感觉没啥意义
+    //container cp <file path> <file path>
+
+    char * path1 = argv[2];
+    char * path2 = argv[3];
+
+    
+    
+        
+    
     checkroot();
+    
     return 0;
 }
 

@@ -11,7 +11,14 @@
 
 ### pivot_root
 
+- 改变调用进程所在的mount namespace中的根挂载点
+- 在实现的时候参考了docker的源码，使用到了一个没有文档化的功能。
+
+`pivot_root(".",".")`将old_root和`/proc/self/cwd`绑定，这样umount会更加容易，无需创建子目录。注意需要`umount(.)`然后进行`chdir("/")`。
+
 ### chroot
+
+chroot改变调用进程及其子进程的`/`
 
 ## IPC Namespace
 
