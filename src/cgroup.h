@@ -6,10 +6,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-extern void cgroup(pid_t);
-int init_cpuset_cgroup(pid_t);
-int init_cpu_cgroup(pid_t);
-int init_memory_cgroup(pid_t);
+#define FREEZE 0
+#define THAWED 1
+
+extern void cgroup(pid_t, char *);
+extern int freeze(char *,int);
+
+int init_cpuset_cgroup(pid_t, char *);
+int init_cpu_cgroup(pid_t, char *);
+int init_memory_cgroup(pid_t, char *);
+int init_freezer_cgroup(pid_t, char *);
 
 #define MEMORY_LIMIT 512*1024*1024 //512M
 

@@ -15,7 +15,7 @@ int container_run(char *argv[]){
         exit(1);
     }
     else{
-        cgroup(child_pid);//set cgroup rules
+        cgroup(child_pid,container_name);//set cgroup rules
         printf("[HOST]Creat sandbox cgroup success\n");
         
         int res;

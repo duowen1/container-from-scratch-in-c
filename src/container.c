@@ -14,11 +14,19 @@ int main(int argc, char *argv[]){
     }
 
     if(!strcmp(argv[1],"ps")){//如果是ps命令
-        container_ps(argv);
+        container_ps();
     }
 
     if(!strcmp(argv[1],"help")){//如果是help命令
         container_help();
+    }
+
+    if(!strcmp(argv[1],"pause")){//如果是pause命令
+        container_pause(argv);
+    }
+
+    if(!strcmp(argv[1],"unpause")){//如果是unpause命令
+        container_unpause(argv);
     }
 
     return 0;
