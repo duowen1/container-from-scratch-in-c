@@ -1,4 +1,28 @@
-[toc]
+- [Namespaces](#namespaces)
+  * [PID Namespace](#pid-namespace)
+    + [Mount `/proc` peseudo file system](#mount---proc--peseudo-file-system)
+  * [UTS Namespace](#uts-namespace)
+  * [Mount Namespace](#mount-namespace)
+    + [pivot_root](#pivot-root)
+    + [chroot](#chroot)
+    + [UnionFS](#unionfs)
+  * [IPC Namespace](#ipc-namespace)
+  * [Net Namespace](#net-namespace)
+    + [Net Bridge](#net-bridge)
+    + [NAT](#nat)
+  * [User Namespace](#user-namespace)
+- [Control Groups](#control-groups)
+  * [cpu sub-system](#cpu-sub-system)
+  * [cpuacct sub-system](#cpuacct-sub-system)
+  * [cpuset sub-system](#cpuset-sub-system)
+  * [memory sub-system](#memory-sub-system)
+    + [swap](#swap)
+  * [freezer sub-system](#freezer-sub-system)
+- [Capabilities](#capabilities)
+- [Seccomp](#seccomp)
+- [Code Structure](#code-structure)
+- [TODO](#todo)
+
 # Namespaces
 
 通过Namespace对沙箱进行资源的隔离
@@ -50,13 +74,11 @@ Docker镜像也是通过联合文件系统进行工作的，通过联合文件�
 网桥，可以理解为软件版的路由器。
 
 ### NAT
-
 分为SNAT和DNAT，使得一个公有IP地址可以支持多个网络设备进行网络通信。
 
-**连接外网：**暂不支持，SNAT和DNAT配置仍有问题
+**连接外网**：暂不支持，SNAT和DNAT配置仍有问题
 
-### 验证
-
+**验证**：
 1. 沙箱内拥有单独的ip地址，且和host不在同一网段下；
 2. 沙箱可以和host进行通信。
 
@@ -136,10 +158,10 @@ $tree .
 ```
 
 # TODO
-- [] 通过正确配置NAT以连接互联网
-- [] IPC Namespace验证程序
-- [] `container cp`、`container ps`、`container exec`、`container pause`命令实现
-- [] 容器降权运行
-- [] 沙箱内数据的持久化存储
-- [] 限制沙箱向硬盘中写入数据的数量
-- [] 支持参数的可定制化
+-[ ] 通过正确配置NAT以连接互联网
+-[ ] IPC Namespace验证程序
+-[ ] `container cp`、`container ps`、`container exec`、`container pause`命令实现
+-[ ] 容器降权运行
+-[ ] 沙箱内数据的持久化存储
+-[ ] 限制沙箱向硬盘中写入数据的数量
+-[ ] 支持参数的可定制化
