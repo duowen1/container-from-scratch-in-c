@@ -3,7 +3,7 @@ CFLAGS = -c
 LKFLAGS = -lseccomp
 CONTAINER = container
 CONTAINER_FLAGS = mycontainer ../../tmp1
-OBJS_FILE = cap.o cgroup.o comp.o container.o
+OBJS_FILE = cap.o cgroup.o comp.o container.o run.o exec.o utils.o
 
 .PHONY : all everything $(CONTAINER)
 

@@ -11,7 +11,7 @@ void *doSomeThing(void *arg)
 	int i = 0;
 	pthread_t id = pthread_self();
 
-	printf("Thread%d, %x\n", i++, id);
+	printf("Thread%d, %lx\n", i++, id);
 	while (1) {
 		int sum;
 		sum += 1;
