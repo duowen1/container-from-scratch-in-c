@@ -158,10 +158,10 @@ $tree .
 ```
 
 # TODO
--[ ] 通过正确配置NAT以连接互联网
--[ ] IPC Namespace验证程序
--[ ] `container cp`、`container ps`、`container exec`、`container pause`命令实现
--[ ] 容器降权运行
--[ ] 沙箱内数据的持久化存储
--[ ] 限制沙箱向硬盘中写入数据的数量
--[ ] 支持参数的可定制化
+- [ ] 通过正确配置NAT以连接互联网
+- [ ] IPC Namespace验证程序
+- [ ] `container cp`、`container ps`、`container exec`、`container pause`命令实现
+- [ ] 容器降权运行
+- [ ] 沙箱内数据的持久化存储
+- [ ] 限制沙箱向硬盘中写入数据的数量
+- [ ] 支持参数的可定制化
