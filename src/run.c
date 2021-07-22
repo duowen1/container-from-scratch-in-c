@@ -96,6 +96,10 @@ int childfunction(void *arg){
     printf("[SANDBOX]Init seccomp success\n");
 
     char * args=NULL;
+
+    setresuid(1,1,1);
+    setresgid(1,1,1);
+
     execv("/bin/bash", &args);
     return 0;
 }
