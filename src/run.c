@@ -2,8 +2,9 @@
 
 int container_run(char *argv[]){
     checkroot();
-    char * container_name = init_unionfs();
+    char * container_name = init_unionfs(argv);
     argv[3] = container_name;
+    printf("args:\n%s\n%s\n%s\n%s\n",argv[0],argv[1],argv[2],argv[3]);
     int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWCGROUP;
     list_capability(HOST);
     pid_t child_pid;
@@ -105,9 +106,16 @@ int childfunction(void *arg){
 }
 
 
-char * init_unionfs(){
-    chdir("../..");
+char * init_unionfs(void * arg){
+    int ret;
+    char * rootfs = ((char **) arg)[3];
+    ret = chdir(rootfs);
+    if(ret == -1){
+        perror("wrong rootfs path");
+        exit(-1);
+    }
     char * container_name = generate_random_string(CONTAINER_NAME_LEN);
+    
     mkdir(container_name,0755);
     chdir(container_name);
 

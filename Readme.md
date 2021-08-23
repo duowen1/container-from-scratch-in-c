@@ -123,6 +123,10 @@ sudo apt-get install libseccomp-dev
 ```
 通过filter模式的seccomp限制沙箱中的进程可以进行的系统调用，沙箱中的进程试图执行黑名单中的系统调用时会被终止。被禁用的系统调用list参考了docker默认加载的seccomp配置文件。
 
+# UnionFS
+
+通过联合文件系统，在容器中对文件系统的操作不会影响到镜像本身。Docker通过这样的方式实现镜像功能。需要准备一个根文件系统，可以通过`debootstrap`进行创建。
+
 # Code Structure
 ```
 $tree .
