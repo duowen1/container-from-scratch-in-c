@@ -27,3 +27,8 @@ char * generate_random_string(int len){
     return name;
 }
 
+//"return 0" means matched
+int isstartwith(char* cmd, char *container_name){
+    int len = strlen(cmd);
+    return strncmp(cmd, container_name, len);
+}

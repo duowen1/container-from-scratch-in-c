@@ -13,6 +13,7 @@
 
 extern int checkroot();
 extern char *generate_random_string(int len);
+extern int isstartwith(char *, char *);
 
 char generate_random_char();
 
