@@ -43,7 +43,7 @@ int main(){
         exit(1);
     }
 
-    if(write(new_fd,"hello from the other side",strlen("hello from the other side"))==-1){
+    if(write(new_fd,"hello from the other side",1+strlen("hello from the other side"))==-1){
         perror("Write error");
         exit(-1);
     }

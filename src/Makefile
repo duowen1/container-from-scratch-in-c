@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -c
 LKFLAGS = -lseccomp
 CONTAINER = container
-CONTAINER_FLAGS = mycontainer ~/Desktop/debug_kernel_all/
+CONTAINER_FLAGS = mycontainer ~/Desktop/roots/
 OBJS_FILE = cap.o cgroup.o comp.o container.o run.o exec.o utils.o pause.o
 
 .PHONY : all everything $(CONTAINER)

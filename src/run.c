@@ -2,11 +2,17 @@
 
 int container_run(char *argv[]){
     checkroot();
+
     char * container_name = init_unionfs(argv);
     argv[3] = container_name;
+
+    init_network();
+
     printf("args:\n%s\n%s\n%s\n%s\n",argv[0],argv[1],argv[2],argv[3]);
     int flag = CLONE_NEWUTS | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWCGROUP;
+    
     list_capability(HOST);
+
     pid_t child_pid;
     struct utsname uts;
     child_pid = clone(childfunction,child_stack+STACK_SIZE,flag | SIGCHLD,(void*)argv);
@@ -20,9 +26,9 @@ int container_run(char *argv[]){
         printf("[HOST]Creat sandbox cgroup success\n");
         
         int res;
-        /*
+        
         system("ip link add veth0 type veth peer name veth1");
-        system("brctl addif br0 veth0");
+        system("brctl addif br0 veth0");//create a new bridge
         res = system("ip link set veth0 up");
 
         if(res){
@@ -37,9 +43,10 @@ int container_run(char *argv[]){
         if(res){
             perror("ip link set veth1 netns chile_pid fail");
             exit(1);
-        }*/
+        }
         
-        //system("ip addr add 192.168.31.1/24 dev veth0");
+        // system("ip addr add 172.10.0.1/24 dev veth0");
+
         if(uname(&uts)==-1){//print the uts from host
             //output error information and exit
             perror("uname fail: ");
@@ -63,6 +70,16 @@ int container_run(char *argv[]){
     }
 }
 
+int init_network(){
+    system("brctl addbr br0");
+    system("ip addr add 172.10.0.1/24 broadcast 172.10.0.255 dev br0");
+    system("ip link set br0 up");
+
+    system("iptables -P FORWARD ACCEPT");
+    system("iptables -t filter -A FORWARD -i br0 ! -o br0 -j ACCEPT");
+    system("iptables -t nat -A POSTROUTING ! -o br0 -s 172.10.0.0/24 -j MASQUERADE");
+    return 0;
+}
 
 //the function which new process executed
 int childfunction(void *arg){
@@ -74,15 +91,14 @@ int childfunction(void *arg){
     sleep(1);//wait the parent namespace to set network
     
     //setup container network
-    /*
+    
     res = setup_network();
     if(res){
         printf("[SANDBOX]Init network wrong\n");
     }else{
         printf("[SANDBOX]Init network success\n");
     }
-    */
-
+    
     setup_rootfs();
     printf("[SANDBOX]Init rootfs success\n");
 
@@ -98,10 +114,12 @@ int childfunction(void *arg){
 
     char * args=NULL;
 
-    setresuid(1,1,1);
-    setresgid(1,1,1);
+    //setresuid(1,1,1);
+    //setresgid(1,1,1);
 
-    execv("/bin/bash", &args);
+    res = execv("/bin/bash", &args);
+    perror("[SANDBOX]: res \n");
+
     return 0;
 }
 
@@ -109,20 +127,26 @@ int childfunction(void *arg){
 char * init_unionfs(void * arg){
     int ret;
     char * rootfs = ((char **) arg)[3];
+
     ret = chdir(rootfs);
     if(ret == -1){
         perror("wrong rootfs path");
         exit(-1);
     }
+
     char * container_name = generate_random_string(CONTAINER_NAME_LEN);
-    
     mkdir(container_name,0755);
     chdir(container_name);
 
     mkdir("merge",0755);
     mkdir("upper",0755);
     mkdir("work",0755);
-    mount("overlay","./merge","overlay",0,"lowerdir=../rootfs,upperdir=./upper,workdir=./work");
+    ret = mount("overlay","./merge","overlay",0,"lowerdir=../rootfs,upperdir=./upper,workdir=./work");
+    if(ret != 0){
+        perror("res");
+        exit(1);
+    }
+    // exit(1);
     return container_name;
 }
 
@@ -142,26 +166,41 @@ int setup_hostname(char * hostname){
 
 int setup_rootfs(){
     const char rootfs[]="merge";
+    
     int res;
+
     res = mount("", "/", "", MS_REC | MS_SLAVE, NULL);
     if(res!=0){
         perror("mount private wrong");
         exit(1);
     }
+
     res = mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL);
     if(res!=0){
         perror("mount bind wrong");
         exit(1);
     }
-
+    
     res = chdir(rootfs);
     if(res!=0){
-        perror("chdir wrong");
+        perror("[rootfs] chdir wrong");
         exit(1);
-    }    
+    }
+        
     int oldroot_fd = open("/", O_DIRECTORY | O_RDONLY, 0);
-    int newroot_fd = open(rootfs, O_DIRECTORY | O_RDONLY , 0);
-    fchdir(newroot_fd);
+    
+    int newroot_fd = open(".", O_DIRECTORY | O_RDONLY , 0);
+    if(newroot_fd == -1){
+        perror("open rootfs fail");
+        printf("%s\n", rootfs);
+        exit(1);
+    }
+
+    res = fchdir(newroot_fd);
+    if(res!=0){
+        perror("[newroot_fd] fchdir wrong");
+        exit(1);
+    }
 
     res = syscall(SYS_pivot_root, "." ,".");
     if(res!=0){
@@ -200,9 +239,10 @@ int setup_network(){
     int res;
     res = system("ip link set lo up");//turn on loop back address
     system("ip link set veth1 up");//turn on the network advice
-    system("ip addr add 172.10.0.201/24 dev veth1");//set the ip address on device
+    system("ip addr add 172.10.0.201/24 broadcast 172.10.0.255 dev veth1");//set the ip address on device
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
     system("route add default gw 172.10.0.1");//add the net gate address to iptables
+
     return res;
 }
 

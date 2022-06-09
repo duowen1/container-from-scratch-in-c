@@ -9,8 +9,8 @@ int main(){
     int sockfd;
     char buffer[1024];
     struct sockaddr_in server={0};
-    int port = 5050, nbytes;
-    char *serverip = "172.10.0.201";
+    int port = 38324, nbytes;
+    char *serverip = "127.0.0.1";
 
     if((sockfd = socket(AF_INET , SOCK_STREAM , 0))==-1){
         perror("Socket fail : ");

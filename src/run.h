@@ -25,6 +25,7 @@ static char child_stack[STACK_SIZE];//stack of child process
 extern int container_run(char **);
 
 char * init_unionfs(void *);
+int init_network();
 
 int childfunction(void*);
 

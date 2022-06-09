@@ -1,9 +1,10 @@
 SERVER = server
 CLIENT = client
+CLIENT_NAT = client_nat
 
-.PHONY : all $(SERVER) $(CLIENT) clean
+.PHONY : all $(SERVER) $(CLIENT) $(CLIENT_NAT) clean
 
-all : $(SERVER) $(CLIENT)
+all : $(SERVER) $(CLIENT) $(CLIENT_NAT)
 
 $(SERVER) : $(SERVER).c
 	gcc -o $@ $<
@@ -11,5 +12,8 @@ $(SERVER) : $(SERVER).c
 $(CLIENT) : $(CLIENT).c
 	gcc -o $@ $<
 
+$(CLIENT_NAT) : $(CLIENT_NAT).c
+	gcc -o $@ $<
+
 clean:
-	rm -f $(SERVER) $(CLIENT)
+	rm -f $(SERVER) $(CLIENT) $(CLIENT_NAT)
