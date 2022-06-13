@@ -9,7 +9,7 @@ int main(){
     int sockfd;
     char buffer[1024];
     struct sockaddr_in server={0};
-    int port = 38324, nbytes;
+    int port = 30001, nbytes;
     char *serverip = "127.0.0.1";
 
     if((sockfd = socket(AF_INET , SOCK_STREAM , 0))==-1){
