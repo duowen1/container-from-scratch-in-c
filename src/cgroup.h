@@ -12,8 +12,6 @@
 void cgroup(pid_t, char *);
 int freeze(char *,int);
 
-
-
 #define MEMORY_LIMIT 512*1024*1024 //512M
 
 #endif

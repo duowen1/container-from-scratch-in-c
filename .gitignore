@@ -8,3 +8,5 @@ fork
 *.o
 try.c
 test/cgroup_test/mem_alloc
+test/namespace_test/net/client*
+test/namespace_test/net/server

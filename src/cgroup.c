@@ -67,7 +67,7 @@ static int init_freezer_cgroup(pid_t pid, char * name){
     return cgroup_fd_operation(Freezer, name, "cgroup.procs", buffer);;
 }
 
-static int freeze(char * name, int direction){
+int freeze(char * name, int direction){
     if(direction == FREEZE){
         return cgroup_fd_operation(Freezer, name, "freezer.state", "FROZEN");
     }else{

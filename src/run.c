@@ -94,7 +94,7 @@ static int init_network(){
         exit(0);
     }
     fputs("1", fd);
-    fclose();
+    fclose(fd);
 
     //SNAT
     system("iptables -P FORWARD ACCEPT");
