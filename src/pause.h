@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "cgroup.h"
 
-extern int container_pause(char **);
-extern int container_unpause(char **);
+int container_pause(char **);
+int container_unpause(char **);
 
 #endif

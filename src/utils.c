@@ -1,13 +1,15 @@
 #include "utils.h"
 
-int checkroot(){
+static char generate_random_char();
+
+void checkroot(){
     if(getuid()){
         printf("run me as root");
         exit(1);
     }
 }
 
-char generate_random_char(){
+static char generate_random_char(){
     int flag = rand() % 16;
     if(flag <= 9){
         return ('0'+flag);

@@ -24,16 +24,5 @@ static char child_stack[STACK_SIZE];//stack of child process
 
 extern int container_run(char **);
 
-char * init_unionfs(void *);
-int init_network();
-
-int childfunction(void*);
-
-int setup_hostname(char *);
-int setup_rootfs();
-int setup_proc();
-int setup_network();
-
-int clean_up(char *);
 
 #endif

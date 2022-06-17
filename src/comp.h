@@ -4,6 +4,6 @@
 
 #include <seccomp.h>
 
-extern int init_comp();
+int init_comp();
 
 #endif

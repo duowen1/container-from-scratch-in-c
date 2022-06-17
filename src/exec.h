@@ -6,6 +6,6 @@
 #include <limits.h>
 #include <fcntl.h>
 
-extern int container_exec(char **);
+int container_exec(char **);
 
 #endif

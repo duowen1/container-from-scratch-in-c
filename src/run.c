@@ -1,5 +1,14 @@
 #include "run.h"
 
+static char * init_unionfs(void *);
+static int init_network();
+static int childfunction(void*);
+static int setup_hostname(char *);
+static int setup_rootfs();
+static int setup_proc();
+static int setup_network();
+static int clean_up(char *);
+
 int container_run(char *argv[]){
     checkroot();
 
@@ -70,19 +79,35 @@ int container_run(char *argv[]){
     }
 }
 
-int init_network(){
+static int init_network(){
+    char filepath[] = "/proc/sys/net/ipv4/ip_forward";
+
     system("brctl addbr br0");
     system("ip addr add 172.10.0.1/24 broadcast 172.10.0.255 dev br0");
     system("ip link set br0 up");
 
+    //echo 1 > /proc/sys/net/ipv4/ip_forward
+    FILE * fd = NULL;
+    fd = fopen(filepath, "w");
+    if(fd == NULL){
+        perror("Open file fail");
+        exit(0);
+    }
+    fputs("1", fd);
+    fclose();
+
+    //SNAT
     system("iptables -P FORWARD ACCEPT");
     system("iptables -t filter -A FORWARD -i br0 ! -o br0 -j ACCEPT");
     system("iptables -t nat -A POSTROUTING ! -o br0 -s 172.10.0.0/24 -j MASQUERADE");
+
+    //DNAT
+    system("iptables -t nat -A PREROUTING -p tcp -m tcp --dport 30001 ! -i br0 -j DNAT --to-destination 172.10.0.201:5050");
     return 0;
 }
 
 //the function which new process executed
-int childfunction(void *arg){
+static int childfunction(void *arg){
     int res;
 
     setup_hostname(((char **)arg)[2]);
@@ -123,8 +148,7 @@ int childfunction(void *arg){
     return 0;
 }
 
-
-char * init_unionfs(void * arg){
+static char * init_unionfs(void * arg){
     int ret;
     char * rootfs = ((char **) arg)[3];
 
@@ -150,7 +174,7 @@ char * init_unionfs(void * arg){
     return container_name;
 }
 
-int setup_hostname(char * hostname){
+static int setup_hostname(char * hostname){
     int res = sethostname(hostname,strlen(hostname));
     if(res){
         perror("[SANDBOX]sethostname fail:");
@@ -164,7 +188,7 @@ int setup_hostname(char * hostname){
     return res;
 }
 
-int setup_rootfs(){
+static int setup_rootfs(){
     const char rootfs[]="merge";
     
     int res;
@@ -223,7 +247,7 @@ int setup_rootfs(){
     return res;
 }
 
-int setup_proc(){
+static int setup_proc(){
     char *mount_point = "proc";
     if(mount_point != NULL){
         mkdir(mount_point,0555);
@@ -235,18 +259,19 @@ int setup_proc(){
     return 0;
 }
 
-int setup_network(){
+static int setup_network(){
     int res;
     res = system("ip link set lo up");//turn on loop back address
     system("ip link set veth1 up");//turn on the network advice
-    system("ip addr add 172.10.0.201/24 broadcast 172.10.0.255 dev veth1");//set the ip address on device
-    //we use route command, which is not existed in the new filesystem, so we must execute this commond before chroot
+    system("ip addr add 172.10.0.201/24 brintoadcast 172.10.0.255 dev veth1");//set the ip address on device
+    
+    //we use route command, which is not existed in the new filesystem, so we must execute this commond before "chroot"
     system("route add default gw 172.10.0.1");//add the net gate address to iptables
 
     return res;
 }
 
-int clean_up(char * name){
+static int clean_up(char * name){
     umount("merge");
     rmdir("merge");
     system("rm -r upper work");//I am lazy

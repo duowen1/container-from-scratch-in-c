@@ -10,7 +10,7 @@ int main(){
     char buffer[1024];
     struct sockaddr_in server={0};
     int port = 30001, nbytes;
-    char *serverip = "127.0.0.1";
+    char *serverip = "192.168.110.127";
 
     if((sockfd = socket(AF_INET , SOCK_STREAM , 0))==-1){
         perror("Socket fail : ");
