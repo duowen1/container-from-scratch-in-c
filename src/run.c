@@ -263,7 +263,7 @@ static int setup_network(){
     int res;
     res = system("ip link set lo up");//turn on loop back address
     system("ip link set veth1 up");//turn on the network advice
-    system("ip addr add 172.10.0.201/24 brintoadcast 172.10.0.255 dev veth1");//set the ip address on device
+    system("ip addr add 172.10.0.201/24 broadcast 172.10.0.255 dev veth1");//set the ip address on device
     
     //we use route command, which is not existed in the new filesystem, so we must execute this commond before "chroot"
     system("route add default gw 172.10.0.1");//add the net gate address to iptables
